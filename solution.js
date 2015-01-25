@@ -127,18 +127,24 @@
                     var nextStops = _.select(_this.globalQueueUp, function(floorNum){
                         return elevator.currentFloor() <= floorNum;
                     });
-                    console.log("nextStopsIndex", nextStops, index);
                     if (nextStops.length){
                         var nextStop = _.max(nextStops);
                         elevator.goToFloor(nextStop);
                         _.pull(_this.globalQueueUp, nextStop);
                     } else {
-                        console.log("innextStos");
+                        var nextDownStops = _.select(_this.globalQueueDown, function(floorNum){
+                            return elevator.currentFloor() <= floorNum;
+                        });
+                        console.log("nDs", nextDownStops); // TODO all elevators seem to get the same floor. Does pull not work?
+                        if (nextDownStops.length){
+                            nextStop = _.min(nextStops);
+                            elevator.goToFloor(nextStop);
+                            _.pull(_this.globalQueueDown, nextStop); 
+                        }
                         elevator.goingUpIndicator(false);                
-                        elevator.goingDownIndicator(true);
+                        elevator.goingDownIndicator(true); 
                     }
-                }
-                if (elevator.goingDownIndicator()) {
+                } else { // elevator probably going down
                     var nextStops = _.select(_this.globalQueueDown, function(floorNum){
                         return elevator.currentFloor() >= floorNum;
                     });
@@ -147,10 +153,19 @@
                         elevator.goToFloor(nextStop);
                         _.pull(_this.globalQueueDown, nextStop); 
                     } else {
+                        nextStops = _.select(_this.globalQueueUp, function(floorNum){
+                            return elevator.currentFloor() >= floorNum;
+                        });
+                        if (nextStops.length){
+                            var nextStop = _.max(nextStops);
+                            elevator.goToFloor(nextStop);
+                            _.pull(_this.globalQueueUp, nextStop); 
+                        }
                         elevator.goingUpIndicator(true);                
                         elevator.goingDownIndicator(false);
                     }
                 }
+
             }
         });
 
