@@ -3,13 +3,7 @@
     globalQueueDown: [],
     init: function(elevators, floors) {
         var _this = this;
-        var elevator = elevators[0]; // Let's use the first elevator
-
-        elevator.goingUpIndicator(false);
-        elevator.goingDownIndicator(true);       
-        
-        // elevator.otherDirectionQueue = [];
-        
+                
         function passingByUp(elevator, floorNum) {
             return (
                 elevator.goingUpIndicator() &&
@@ -57,98 +51,88 @@
             return elevator.loadFactor() > 0.6;
         }       
         
-        elevator.on("floor_button_pressed", function(floorNum) {
-            if (!_.contains(elevator.destinationQueue, floorNum)) {
-                if (passingByUp(elevator, floorNum)) {
-                    return addUp(elevator, floorNum);
-                }
-                
-                if (passingByDown(elevator, floorNum)) {
-                    return addDown(elevator, floorNum);
-                }
-                
-                throw ("unexpected button press", elevator, floorNum);
-            }
-        });
+        _.each(elevators, function(elevator, index) {
+            elevator.goingUpIndicator(true);
+            elevator.goingDownIndicator(false);
+            elevator.goToFloor(index);
 
-        elevator.on("passing_floor", function() {
-           // TODO: decide wether to stop or skip this floor, based on load
-            
-            //if(passingByUp(elevator, floor.floorNum()) && !elevatorFull(elevator)) {
-            //    addUp(elevator, floor.floorNum());
-        });
+            elevator.on("floor_button_pressed", function(floorNum) {
+                if (!_.contains(elevator.destinationQueue, floorNum)) {
+                    if (passingByUp(elevator, floorNum)) {
+                        return addUp(elevator, floorNum);
+                    }
+                    
+                    if (passingByDown(elevator, floorNum)) {
+                        return addDown(elevator, floorNum);
+                    }
+                    
+                    return elevator.goToFloor(floorNum, true);
+                }
+            });
 
-        elevator.on("idle", function() {
-            // TODO: merge array more regularly
-            
-            if(elevator.goingUpIndicator()) {
-                // Changing to going down
-                elevator.goingUpIndicator(false);                
-                elevator.goingDownIndicator(true);
+            elevator.on("passing_floor", function() {
+               // TODO: decide wether to stop or skip this floor, based on load
                 
-                elevator.destinationQueue = _this.globalQueueDown;
-                _this.globalQueueDown = [];
-                elevator.destinationQueue.sort();
-                elevator.destinationQueue.reverse();
-                elevator.checkDestinationQueue();                
-            } else {
-                // Changing to going up
-                elevator.goingUpIndicator(true);                
-                elevator.goingDownIndicator(false);
-                
-                elevator.destinationQueue = _this.globalQueueUp;
-                _this.globalQueueUp = [];
-                elevator.destinationQueue.sort();
-                elevator.checkDestinationQueue();                
-            }
+                //if(passingByUp(elevator, floor.floorNum()) && !elevatorFull(elevator)) {
+                //    addUp(elevator, floor.floorNum());
+            });
         });
         
         _.each(floors, function(floor) {
             floor.on("up_button_pressed", function() {
                 addToGlobalQueueUp(floor.floorNum());
+
+                // if (floor.floorNum() === 0) {
+                //     addToGlobalQueueDown(floor.floorNum());
+                // } else {
+                //     addToGlobalQueueUp(floor.floorNum());
+                // }
             });
             
             floor.on("down_button_pressed", function() {
                 addToGlobalQueueDown(floor.floorNum());
+                // if (floor.floorNum() === (floors.length - 1)) {
+                //     addToGlobalQueueUp(floor.floorNum());
+                // } else {
+                //     addToGlobalQueueDown(floor.floorNum());
+                // }
             });
         });
     },
     update: function(dt, elevators, floors) {
         var _this = this;
-        var elevator = elevators[0];
-        
-        if (elevator.destinationQueue.length === 0){
-            if (elevator.goingUpIndicator()){
-                var nextStops = _.select(_this.globalQueueUp, function(floorNum){
-                    return elevator.currentFloor <= floorNum;
-                });
-                //TODO continue here
-                console.log("eesdkfjskjdfhsdkjfh", elevator.destinationQueue);
-                elevator.destinationQueue += nextStops;
-                console.log(elevator.destinationQueue);
+        _.each(elevators, function(elevator, index) {
+            if (!elevator.destinationQueue.length){
+                if (elevator.goingUpIndicator()) {
+                    var nextStops = _.select(_this.globalQueueUp, function(floorNum){
+                        return elevator.currentFloor() <= floorNum;
+                    });
+                    if (nextStops.length){
+                        console.log("nextStops", nextStops);
+                        elevator.destinationQueue = nextStops;
+                        _this.globalQueueUp = _.difference(_this.globalQueueUp, nextStops);
+                        elevator.checkDestinationQueue();
+                    } else {
+                        elevator.goingUpIndicator(false);                
+                        elevator.goingDownIndicator(true);
+                    }
+                }
+                if (elevator.goingDownIndicator()) {
+                    var nextStops = _.select(_this.globalQueueDown, function(floorNum){
+                        return elevator.currentFloor() >= floorNum;
+                    });
+                    if (nextStops.length){
+                        elevator.destinationQueue = nextStops;
+                        _this.globalQueueDown = _.difference(_this.globalQueueDown, nextStops);
+                        elevator.checkDestinationQueue();
+                    } else {
+                        elevator.goingUpIndicator(true);                
+                        elevator.goingDownIndicator(false);
+                    }
+                }
             }
-            // nimm aus deiner Richtung den current florr und alles in guter richtung
-            // wechsel die richtung, nimme alles drunter liegt
-            // fehler 5 / 0 beachten
-            if (_this.globalQueueUp !== 0){
-                elevator.goingUpIndicator(true);                
-                elevator.goingDownIndicator(false);
-                
-                elevator.destinationQueue = _this.globalQueueUp;
-                _this.globalQueueUp = [];
-                elevator.destinationQueue.sort();
-                elevator.checkDestinationQueue(); 
-            } else {
-                elevator.goingUpIndicator(false);                
-                elevator.goingDownIndicator(true);
-                
-                elevator.destinationQueue = _this.globalQueueDown;
-                _this.globalQueueDown = [];
-                elevator.destinationQueue.sort();
-                elevator.destinationQueue.reverse();
-                elevator.checkDestinationQueue(); 
-            }
-        }
+        });
+
         
         console.log("DT", dt, _this.globalQueueUp, _this.globalQueueDown); 
         elevators.forEach(function(elevator, index){
