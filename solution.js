@@ -54,7 +54,6 @@
         _.each(elevators, function(elevator, index) {
             elevator.goingUpIndicator(true);
             elevator.goingDownIndicator(false);
-            elevator.goToFloor(index);
 
             elevator.on("floor_button_pressed", function(floorNum) {
                 if (!_.contains(elevator.destinationQueue, floorNum)) {
@@ -70,12 +69,33 @@
                 }
             });
 
-            elevator.on("passing_floor", function() {
-               // TODO: decide wether to stop or skip this floor, based on load
-                
-                //if(passingByUp(elevator, floor.floorNum()) && !elevatorFull(elevator)) {
-                //    addUp(elevator, floor.floorNum());
+            elevator.on("passing_floor", function(floorNum, direction) {
+                // TODO: decide wether to stop or skip this floor, based on load
+                if (!(direction === "up" && elevator.goingUpIndicator()) && !(direction === "down" && elevator.goingDownIndicator())) console.log("direction and elevator not the same");
+                if (direction === "up" && elevator.goingUpIndicator() && !elevatorFull(elevator)){
+                    if (_.contains(_this.globalQueueUp, floorNum)){
+                        elevator.goToFloor(floorNum, true);
+                        _.pull(_this.globalQueueUp, floorNum); // removen oderso 
+                    }
+                }
+                  if (direction === "down" && elevator.goingDownIndicator() && !elevatorFull(elevator)){
+                    if (_.contains(_this.globalQueueDown, floorNum)){
+                        elevator.goToFloor(floorNum, true);
+                        _.pull(_this.globalQueueDown, floorNum); // removen oderso 
+                    }
+                }
             });
+
+            elevator.on("stopped_at_floor", function(floorNum){
+                if (floorNum === floors.length - 1){
+                    elevator.goingUpIndicator(false);                
+                    elevator.goingDownIndicator(true);
+                }
+                if (floorNum === 0){
+                    elevator.goingUpIndicator(true);                
+                    elevator.goingDownIndicator(false);
+                }
+            })
         });
         
         _.each(floors, function(floor) {
@@ -107,12 +127,13 @@
                     var nextStops = _.select(_this.globalQueueUp, function(floorNum){
                         return elevator.currentFloor() <= floorNum;
                     });
+                    console.log("nextStopsIndex", nextStops, index);
                     if (nextStops.length){
-                        console.log("nextStops", nextStops);
-                        elevator.destinationQueue = nextStops;
-                        _this.globalQueueUp = _.difference(_this.globalQueueUp, nextStops);
-                        elevator.checkDestinationQueue();
+                        var nextStop = _.max(nextStops);
+                        elevator.goToFloor(nextStop);
+                        _.pull(_this.globalQueueUp, nextStop);
                     } else {
+                        console.log("innextStos");
                         elevator.goingUpIndicator(false);                
                         elevator.goingDownIndicator(true);
                     }
@@ -122,9 +143,9 @@
                         return elevator.currentFloor() >= floorNum;
                     });
                     if (nextStops.length){
-                        elevator.destinationQueue = nextStops;
-                        _this.globalQueueDown = _.difference(_this.globalQueueDown, nextStops);
-                        elevator.checkDestinationQueue();
+                        var nextStop = _.min(nextStops);
+                        elevator.goToFloor(nextStop);
+                        _.pull(_this.globalQueueDown, nextStop); 
                     } else {
                         elevator.goingUpIndicator(true);                
                         elevator.goingDownIndicator(false);
