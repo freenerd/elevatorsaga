@@ -122,7 +122,10 @@
     update: function(dt, elevators, floors) {
         var _this = this;
         _.each(elevators, function(elevator, index) {
-            if (!elevator.destinationQueue.length){
+            if(!elevator.destinationQueue.length && !_this.globalQueueUp.length && !_this.globalQueueDown){
+                return; //nothing to do, just wait
+            }
+            if (!elevator.destinationQueue.length ){
                 if (elevator.goingUpIndicator()) {
                     var nextStops = _.select(_this.globalQueueUp, function(floorNum){
                         return elevator.currentFloor() <= floorNum;
@@ -137,7 +140,7 @@
                         });
                         console.log("nDs", nextDownStops); // TODO all elevators seem to get the same floor. Does pull not work?
                         if (nextDownStops.length){
-                            nextStop = _.min(nextStops);
+                            nextStop = _.min(nextDownStops);
                             elevator.goToFloor(nextStop);
                             _.pull(_this.globalQueueDown, nextStop); 
                         }
