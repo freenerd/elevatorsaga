@@ -119,9 +119,10 @@
             });
         });
     },
-    update: function(dt, elevators, floors) {
+    update: function(dt, elevators, floors) { // TODO refactor and call code also on idle and floor stop
         var _this = this;
-        _.each(elevators, function(elevator, index) {
+        // randomize elevators to control load
+        _.each(_.shuffle(elevators), function(elevator, index) {
             if(!elevator.destinationQueue.length && !_this.globalQueueUp.length && !_this.globalQueueDown){
                 return; //nothing to do, just wait
             }
