@@ -58,11 +58,16 @@
             elevator.on("floor_button_pressed", function(floorNum) {
                 if (!_.contains(elevator.destinationQueue, floorNum)) {
                     if (passingByUp(elevator, floorNum)) {
-                        return addUp(elevator, floorNum);
+                        //remove from global queue
+                        addUp(elevator, floorNum);
+                        _.pull(_this.globalQueueUp, floorNum);
+                        return;
                     }
                     
                     if (passingByDown(elevator, floorNum)) {
-                        return addDown(elevator, floorNum);
+                        addDown(elevator, floorNum);
+                        _.pull(_this.globalQueueDown, floorNum);
+                        return;
                     }
                     
                     return elevator.goToFloor(floorNum, true);
