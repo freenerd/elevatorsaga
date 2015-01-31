@@ -75,18 +75,17 @@
             });
 
             elevator.on("passing_floor", function(floorNum, direction) {
-                // TODO: decide wether to stop or skip this floor, based on load
                 if (!(direction === "up" && elevator.goingUpIndicator()) && !(direction === "down" && elevator.goingDownIndicator())) console.log("direction and elevator not the same");
                 if (direction === "up" && elevator.goingUpIndicator() && !elevatorFull(elevator)){
                     if (_.contains(_this.globalQueueUp, floorNum)){
                         elevator.goToFloor(floorNum, true);
-                        _.pull(_this.globalQueueUp, floorNum); // removen oderso 
+                        _.pull(_this.globalQueueUp, floorNum);
                     }
                 }
                   if (direction === "down" && elevator.goingDownIndicator() && !elevatorFull(elevator)){
                     if (_.contains(_this.globalQueueDown, floorNum)){
                         elevator.goToFloor(floorNum, true);
-                        _.pull(_this.globalQueueDown, floorNum); // removen oderso 
+                        _.pull(_this.globalQueueDown, floorNum);
                     }
                 }
             });
@@ -140,11 +139,11 @@
                         var nextStop = _.max(nextStops);
                         elevator.goToFloor(nextStop);
                         _.pull(_this.globalQueueUp, nextStop);
+
                     } else {
                         var nextDownStops = _.select(_this.globalQueueDown, function(floorNum){
                             return elevator.currentFloor() <= floorNum;
                         });
-                        console.log("nDs", nextDownStops); // TODO all elevators seem to get the same floor. Does pull not work?
                         if (nextDownStops.length){
                             nextStop = _.min(nextDownStops);
                             elevator.goToFloor(nextStop);
